@@ -130,5 +130,4 @@ jobs:
       release_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
       gitops_repo: ${{ needs.resolve-release-vars.outputs.gitops_repo }}
       gitops_base_branch: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
-    secrets:
-      gitops_repo_token: ${{ secrets.GITOPS_REPO_TOKEN }}
+    secrets: inherit
