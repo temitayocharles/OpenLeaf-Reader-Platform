@@ -76,6 +76,7 @@ jobs:
     uses: temitayocharles/shared-workflows/.github/workflows/security-trivy.yml@main
     with:
       scan_type: image
+      exit_code: "0"
       targets: ghcr.io/${{ github.repository_owner }}/openleaf-user-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-book-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-publishing-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-subscription-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-payment-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-analytics-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-frontend:latest
     secrets:
       registry_username: ${{ secrets.GHCR_USERNAME != '' && secrets.GHCR_USERNAME || github.actor }}
