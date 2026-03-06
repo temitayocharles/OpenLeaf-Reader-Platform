@@ -113,7 +113,7 @@ jobs:
     with:
       deploy_env: ${{ needs.resolve-release-vars.outputs.deploy_env }}
       release_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
-      image_prefix: ${{ env.IMAGE_PREFIX }}
+      image_prefix: ghcr.io/${{ github.repository_owner }}
       image_names: openleaf-user-service,openleaf-book-service,openleaf-publishing-service,openleaf-subscription-service,openleaf-payment-service,openleaf-analytics-service,openleaf-frontend
       render_artifact_name: helm-render-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
       evidence_artifact_name: release-evidence-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
