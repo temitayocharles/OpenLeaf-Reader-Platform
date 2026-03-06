@@ -412,6 +412,13 @@ Set GitHub secrets:
 - `GITHUB_TOKEN` with `packages:write` (auto-provided in GitHub Actions)
 - `GHCR_TOKEN` (recommended for CD publish to GHCR; PAT with `write:packages`)
 - `GHCR_USERNAME` (optional; defaults to workflow actor)
+- `SONAR_HOST_URL` and `SONAR_TOKEN` (required only if SonarQube job is enabled)
+- `SNYK_TOKEN` (required only if Snyk job is enabled)
+
+Set optional GitHub repository variables:
+
+- `ENABLE_SONARQUBE=true` to enable SonarQube reusable scan job in CI
+- `ENABLE_SNYK=true` to enable Snyk reusable scan job in CI
 
 Argo CD install:
 

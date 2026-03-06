@@ -16,7 +16,7 @@ jobs:
 
   sonarqube:
     needs: gitleaks
-    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+    if: ${{ vars.ENABLE_SONARQUBE == 'true' }}
     uses: temitayocharles/shared-workflows/.github/workflows/security-sonarqube.yml@main
     with:
       enabled: true
@@ -29,7 +29,7 @@ jobs:
 
   snyk:
     needs: gitleaks
-    if: ${{ secrets.SNYK_TOKEN != '' }}
+    if: ${{ vars.ENABLE_SNYK == 'true' }}
     uses: temitayocharles/shared-workflows/.github/workflows/security-snyk.yml@main
     with:
       enabled: true
