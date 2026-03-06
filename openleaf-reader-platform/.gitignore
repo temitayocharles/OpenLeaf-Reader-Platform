@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-venv/
-node_modules/
-build/
-.env
-k8s/app-secrets.local.yaml
-.DS_Store
