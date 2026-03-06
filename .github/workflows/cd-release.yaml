@@ -52,7 +52,7 @@ jobs:
       ref_name: ${{ github.ref_name }}
       environment: ${{ github.event.inputs.environment }}
       image_tag: ${{ github.event.inputs.image_tag }}
-      promote_gitops: ${{ github.event.inputs.promote_gitops }}
+      promote_gitops: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.promote_gitops == 'true' }}
       gitops_repo: ${{ github.event.inputs.gitops_repo }}
       gitops_base_branch: ${{ github.event.inputs.gitops_base_branch }}
 
