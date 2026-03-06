@@ -17,9 +17,11 @@ spec:
       labels:
         app: user-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-creds
       containers:
       - name: user-service
-        image: yourdockerhub/user-service:latest
+        image: ghcr.io/temitayocharles/openleaf-user-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5001
@@ -70,8 +72,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: user-service
-  minReplicas: 3
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
