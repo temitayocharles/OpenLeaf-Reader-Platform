@@ -46,82 +46,23 @@ env:
 
 jobs:
   resolve-release-vars:
-    runs-on: ubuntu-latest
-    outputs:
-      deploy_env: ${{ steps.vars.outputs.deploy_env }}
-      release_tag: ${{ steps.vars.outputs.release_tag }}
-      promote_gitops: ${{ steps.vars.outputs.promote_gitops }}
-      gitops_repo: ${{ steps.vars.outputs.gitops_repo }}
-      gitops_base_branch: ${{ steps.vars.outputs.gitops_base_branch }}
-    steps:
-      - name: Resolve release variables
-        id: vars
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            DEPLOY_ENV="${{ github.event.inputs.environment }}"
-            PROMOTE_GITOPS="${{ github.event.inputs.promote_gitops }}"
-            GITOPS_REPO="${{ github.event.inputs.gitops_repo }}"
-            GITOPS_BASE_BRANCH="${{ github.event.inputs.gitops_base_branch }}"
-            if [ -n "${{ github.event.inputs.image_tag }}" ]; then
-              RELEASE_TAG="${{ github.event.inputs.image_tag }}"
-            else
-              RELEASE_TAG="${GITHUB_SHA::7}"
-            fi
-          else
-            REF_TAG="${GITHUB_REF_NAME}"
-            RELEASE_TAG="${REF_TAG}"
-            PROMOTE_GITOPS="false"
-            GITOPS_REPO="temitayocharles/platform-gitops"
-            GITOPS_BASE_BRANCH="main"
-            case "${REF_TAG}" in
-              prod-*) DEPLOY_ENV="prod" ;;
-              release-*) DEPLOY_ENV="prod" ;;
-              staging-*) DEPLOY_ENV="staging" ;;
-              *) DEPLOY_ENV="staging" ;;
-            esac
-          fi
-          echo "deploy_env=${DEPLOY_ENV}" >> "${GITHUB_OUTPUT}"
-          echo "release_tag=${RELEASE_TAG}" >> "${GITHUB_OUTPUT}"
-          echo "promote_gitops=${PROMOTE_GITOPS}" >> "${GITHUB_OUTPUT}"
-          echo "gitops_repo=${GITOPS_REPO}" >> "${GITHUB_OUTPUT}"
-          echo "gitops_base_branch=${GITOPS_BASE_BRANCH}" >> "${GITHUB_OUTPUT}"
+    uses: temitayocharles/shared-workflows/.github/workflows/release-resolve-vars.yml@main
+    with:
+      is_dispatch: ${{ github.event_name == 'workflow_dispatch' }}
+      ref_name: ${{ github.ref_name }}
+      environment: ${{ github.event.inputs.environment }}
+      image_tag: ${{ github.event.inputs.image_tag }}
+      promote_gitops: ${{ github.event.inputs.promote_gitops }}
+      gitops_repo: ${{ github.event.inputs.gitops_repo }}
+      gitops_base_branch: ${{ github.event.inputs.gitops_base_branch }}
 
   helm-validate:
     needs: resolve-release-vars
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-
-      - name: Lint Helm charts
-        run: |
-          helm lint helm-charts/charts/openleaf-config
-          helm lint helm-charts/charts/openleaf-user-service
-          helm lint helm-charts/charts/openleaf-services-bundle
-          helm lint helm-charts/charts/openleaf-gateway
-
-      - name: Render Helm charts
-        shell: bash
-        run: |
-          ENV_FILE="values-${{ needs.resolve-release-vars.outputs.deploy_env }}.yaml"
-          helm template openleaf-config helm-charts/charts/openleaf-config -f "helm-charts/charts/openleaf-config/${ENV_FILE}" > /tmp/openleaf-config.render.yaml
-          helm template openleaf-user helm-charts/charts/openleaf-user-service -f "helm-charts/charts/openleaf-user-service/${ENV_FILE}" > /tmp/openleaf-user.render.yaml
-          helm template openleaf-services helm-charts/charts/openleaf-services-bundle -f "helm-charts/charts/openleaf-services-bundle/${ENV_FILE}" > /tmp/openleaf-services.render.yaml
-          helm template openleaf-gateway helm-charts/charts/openleaf-gateway -f "helm-charts/charts/openleaf-gateway/${ENV_FILE}" > /tmp/openleaf-gateway.render.yaml
-
-      - name: Upload Helm render artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: helm-render-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
-          path: |
-            /tmp/openleaf-config.render.yaml
-            /tmp/openleaf-user.render.yaml
-            /tmp/openleaf-services.render.yaml
-            /tmp/openleaf-gateway.render.yaml
+    uses: temitayocharles/shared-workflows/.github/workflows/helm-validate.yml@main
+    with:
+      environment: ${{ needs.resolve-release-vars.outputs.deploy_env }}
+      chart_names: openleaf-config,openleaf-user-service,openleaf-services-bundle,openleaf-gateway
+      artifact_name: helm-render-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
 
   build-and-push:
     needs:
@@ -168,48 +109,14 @@ jobs:
       - resolve-release-vars
       - helm-validate
       - build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Helm renders
-        uses: actions/download-artifact@v4
-        with:
-          name: helm-render-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
-          path: /tmp/helm-render
-
-      - name: Build release evidence
-        shell: bash
-        run: |
-          sha256sum /tmp/helm-render/*.yaml > /tmp/render-checksums.txt
-          cat > /tmp/release-evidence.md <<EOF
-          # OpenLeaf CD Evidence
-
-          - commit: ${GITHUB_SHA}
-          - deploy_env: ${{ needs.resolve-release-vars.outputs.deploy_env }}
-          - image_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
-          - image_prefix: ${{ env.IMAGE_PREFIX }}
-
-          ## Published Images
-          - ${{ env.IMAGE_PREFIX }}/openleaf-user-service:${{ needs.resolve-release-vars.outputs.release_tag }}
-          - ${{ env.IMAGE_PREFIX }}/openleaf-book-service:${{ needs.resolve-release-vars.outputs.release_tag }}
-          - ${{ env.IMAGE_PREFIX }}/openleaf-publishing-service:${{ needs.resolve-release-vars.outputs.release_tag }}
-          - ${{ env.IMAGE_PREFIX }}/openleaf-subscription-service:${{ needs.resolve-release-vars.outputs.release_tag }}
-          - ${{ env.IMAGE_PREFIX }}/openleaf-payment-service:${{ needs.resolve-release-vars.outputs.release_tag }}
-          - ${{ env.IMAGE_PREFIX }}/openleaf-analytics-service:${{ needs.resolve-release-vars.outputs.release_tag }}
-          - ${{ env.IMAGE_PREFIX }}/openleaf-frontend:${{ needs.resolve-release-vars.outputs.release_tag }}
-
-          ## Helm Render Checksums
-          \`\`\`
-          $(cat /tmp/render-checksums.txt)
-          \`\`\`
-          EOF
-
-      - name: Upload release evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-evidence-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
-          path: |
-            /tmp/release-evidence.md
-            /tmp/render-checksums.txt
+    uses: temitayocharles/shared-workflows/.github/workflows/release-evidence.yml@main
+    with:
+      deploy_env: ${{ needs.resolve-release-vars.outputs.deploy_env }}
+      release_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
+      image_prefix: ${{ env.IMAGE_PREFIX }}
+      image_names: openleaf-user-service,openleaf-book-service,openleaf-publishing-service,openleaf-subscription-service,openleaf-payment-service,openleaf-analytics-service,openleaf-frontend
+      render_artifact_name: helm-render-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
+      evidence_artifact_name: release-evidence-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
 
   promote-gitops:
     needs:
@@ -217,89 +124,11 @@ jobs:
       - build-and-push
       - release-evidence
     if: needs.resolve-release-vars.outputs.promote_gitops == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout GitOps repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ needs.resolve-release-vars.outputs.gitops_repo }}
-          ref: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
-          token: ${{ secrets.GITOPS_REPO_TOKEN }}
-          path: gitops
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pyyaml
-
-      - name: Update OpenLeaf image tags in values files
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import yaml
-
-          root = Path("gitops")
-          env_name = "${{ needs.resolve-release-vars.outputs.deploy_env }}"
-          tag = "${{ needs.resolve-release-vars.outputs.release_tag }}"
-          target_name = f"values-{env_name}.yaml"
-          targets = list(root.rglob(target_name))
-
-          def update_image_block(block):
-            if not isinstance(block, dict):
-              return 0
-            repo = block.get("repository")
-            if isinstance(repo, str) and "/openleaf-" in repo and block.get("tag") != tag:
-              block["tag"] = tag
-              return 1
-            return 0
-
-          changed = []
-          for path in targets:
-            try:
-              data = yaml.safe_load(path.read_text()) or {}
-            except Exception:
-              continue
-            updates = 0
-            if isinstance(data, dict):
-              updates += update_image_block(data.get("image"))
-              services = data.get("services")
-              if isinstance(services, dict):
-                for svc in services.values():
-                  if isinstance(svc, dict):
-                    updates += update_image_block(svc.get("image"))
-            if updates > 0:
-              path.write_text(yaml.safe_dump(data, sort_keys=False))
-              changed.append((str(path), updates))
-
-          if changed:
-            print("Updated files:")
-            for path, updates in changed:
-              print(f"- {path} ({updates} image blocks)")
-          else:
-            print("No OpenLeaf image tags were updated in GitOps values files.")
-          PY
-
-      - name: Create pull request in GitOps repo
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITOPS_REPO_TOKEN }}
-          path: gitops
-          branch: openleaf/cd-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
-          base: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
-          commit-message: "chore(gitops): promote OpenLeaf images to ${{ needs.resolve-release-vars.outputs.release_tag }}"
-          title: "chore(gitops): promote OpenLeaf images to ${{ needs.resolve-release-vars.outputs.release_tag }} (${{ needs.resolve-release-vars.outputs.deploy_env }})"
-          body: |
-            Automated promotion from OpenLeaf CD pipeline.
-
-            - Environment: `${{ needs.resolve-release-vars.outputs.deploy_env }}`
-            - Image tag: `${{ needs.resolve-release-vars.outputs.release_tag }}`
-            - Source commit: `${{ github.sha }}`
+    uses: temitayocharles/shared-workflows/.github/workflows/gitops-promote-openleaf.yml@main
+    with:
+      deploy_env: ${{ needs.resolve-release-vars.outputs.deploy_env }}
+      release_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
+      gitops_repo: ${{ needs.resolve-release-vars.outputs.gitops_repo }}
+      gitops_base_branch: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
+    secrets:
+      gitops_repo_token: ${{ secrets.GITOPS_REPO_TOKEN }}
