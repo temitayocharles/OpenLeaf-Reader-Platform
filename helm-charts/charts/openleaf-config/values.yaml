@@ -1,0 +1,18 @@
+configMap:
+  enabled: true
+  name: app-config
+  data:
+    RABBITMQ_HOST: rabbit-rabbitmq
+    FRONTEND_BASE_URL: http://localhost:3000
+
+secret:
+  enabled: false
+  name: app-secrets
+  type: Opaque
+  stringData:
+    JWT_SECRET: change-me
+    MONGO_URI: mongodb://mongo-mongodb-sharded-mongos:27017/openleaf_db?replicaSet=rsShard0
+    STRIPE_SECRET: sk_test_replace_me
+    STRIPE_WEBHOOK_SECRET: whsec_replace_me
+    STRIPE_PRICE_BASIC: price_replace_basic
+    STRIPE_PRICE_PREMIUM: price_replace_premium

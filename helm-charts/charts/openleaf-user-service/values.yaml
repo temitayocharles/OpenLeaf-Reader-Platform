@@ -1,0 +1,65 @@
+replicaCount: 3
+
+nameOverride: ""
+fullnameOverride: ""
+workloadName: user-service
+
+image:
+  repository: ghcr.io/temitayocharles/openleaf-user-service
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 5001
+  targetPort: 5001
+
+containerPort: 5001
+
+envFrom:
+  - configMapRef:
+      name: app-config
+  - secretRef:
+      name: app-secrets
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 5001
+  initialDelaySeconds: 15
+  periodSeconds: 20
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 5001
+  initialDelaySeconds: 15
+  periodSeconds: 10
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+autoscaling:
+  enabled: true
+  name: user-hpa
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+
+podDisruptionBudget:
+  enabled: true
+  name: user-pdb
+  minAvailable: 2

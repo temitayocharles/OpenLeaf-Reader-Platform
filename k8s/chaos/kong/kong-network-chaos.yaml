@@ -2,6 +2,8 @@ apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
   name: kong-to-upstream-delay-partition
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
 spec:
   action: partition
   mode: all

@@ -1,0 +1,16 @@
+services:
+  book-service:
+    image:
+      tag: prod-latest
+  publishing-service:
+    image:
+      tag: prod-latest
+  subscription-service:
+    image:
+      tag: prod-latest
+  payment-service:
+    image:
+      tag: prod-latest
+  analytics-service:
+    image:
+      tag: prod-latest

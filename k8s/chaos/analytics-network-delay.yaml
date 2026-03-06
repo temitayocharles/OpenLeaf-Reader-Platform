@@ -2,6 +2,8 @@ apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
   name: analytics-network-delay
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
 spec:
   action: delay
   mode: all

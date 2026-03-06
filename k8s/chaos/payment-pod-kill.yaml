@@ -2,6 +2,8 @@ apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
   name: payment-pod-failure
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
 spec:
   action: pod-kill
   mode: one

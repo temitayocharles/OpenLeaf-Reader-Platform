@@ -1,0 +1,70 @@
+{{- if .Values.plugins.oauth2.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ .Values.plugins.oauth2.name }}
+plugin: oauth2
+config:
+{{ toYaml .Values.plugins.oauth2.config | indent 2 }}
+---
+{{- end }}
+{{- if .Values.plugins.rateLimit.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ .Values.plugins.rateLimit.name }}
+plugin: rate-limiting
+config:
+{{ toYaml .Values.plugins.rateLimit.config | indent 2 }}
+---
+{{- end }}
+{{- if .Values.plugins.acl.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ .Values.plugins.acl.name }}
+plugin: acl
+config:
+{{ toYaml .Values.plugins.acl.config | indent 2 }}
+---
+{{- end }}
+{{- if .Values.plugins.requestValidator.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ .Values.plugins.requestValidator.name }}
+plugin: request-validator
+config:
+{{ toYaml .Values.plugins.requestValidator.config | indent 2 }}
+---
+{{- end }}
+{{- if .Values.plugins.botDetection.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ .Values.plugins.botDetection.name }}
+plugin: bot-detection
+config:
+{{ toYaml .Values.plugins.botDetection.config | indent 2 }}
+---
+{{- end }}
+{{- if .Values.plugins.analyticsAcl.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ .Values.plugins.analyticsAcl.name }}
+plugin: acl
+config:
+{{ toYaml .Values.plugins.analyticsAcl.config | indent 2 }}
+---
+{{- end }}
+{{- if .Values.plugins.prometheus.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ .Values.plugins.prometheus.name }}
+plugin: prometheus
+config:
+{{ toYaml .Values.plugins.prometheus.config | indent 2 }}
+---
+{{- end }}

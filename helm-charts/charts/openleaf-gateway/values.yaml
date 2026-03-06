@@ -1,0 +1,113 @@
+nameOverride: ""
+fullnameOverride: ""
+
+plugins:
+  oauth2:
+    enabled: true
+    name: oauth2-plugin
+    config:
+      enable_authorization_code: true
+      scopes:
+        - email
+        - profile
+  rateLimit:
+    enabled: true
+    name: rate-limit-plugin
+    config:
+      minute: 100
+      policy: redis
+  acl:
+    enabled: true
+    name: acl-plugin
+    config:
+      allow:
+        - users
+        - admins
+  requestValidator:
+    enabled: true
+    name: request-validator
+    config:
+      allowed_content_types:
+        - application/json
+  botDetection:
+    enabled: true
+    name: bot-detection
+    config:
+      allow: []
+  analyticsAcl:
+    enabled: true
+    name: analytics-acl
+    config:
+      allow:
+        - admins
+  prometheus:
+    enabled: true
+    name: kong-prometheus-global
+    config:
+      per_consumer: false
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+
+ingress:
+  enabled: true
+  name: openleaf-ingress
+  className: kong
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  pluginList:
+    - oauth2-plugin
+    - rate-limit-plugin
+    - acl-plugin
+    - request-validator
+    - bot-detection
+  hosts:
+    - host: ""
+      paths:
+        - path: /users
+          pathType: Prefix
+          serviceName: user-service
+          servicePort: 5001
+        - path: /books
+          pathType: Prefix
+          serviceName: book-service
+          servicePort: 5002
+        - path: /publish
+          pathType: Prefix
+          serviceName: publishing-service
+          servicePort: 5003
+        - path: /subscriptions
+          pathType: Prefix
+          serviceName: subscription-service
+          servicePort: 5004
+        - path: /payments
+          pathType: Prefix
+          serviceName: payment-service
+          servicePort: 5005
+        - path: /analytics
+          pathType: Prefix
+          serviceName: analytics-service
+          servicePort: 5006
+
+hardened:
+  enabled: false
+  ingress:
+    name: ultra-hardened-route
+    className: kong
+    pluginList:
+      - sec-bot-early
+      - sec-ip-block
+      - sec-rate-ip
+      - sec-jwt
+      - sec-acl
+      - sec-validator
+      - sec-transform
+      - trace-correlation
+      - opt-cache
+      - resp-transform
+    host: ""
+    path: /ultra-secure
+    pathType: Prefix
+    serviceName: user-service
+    servicePort: 5001

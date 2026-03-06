@@ -2,6 +2,8 @@ apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
   name: mongo-cpu-stress
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
 spec:
   mode: one
   selector:

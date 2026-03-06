@@ -1,0 +1,16 @@
+services:
+  book-service:
+    image:
+      tag: dev-latest
+  publishing-service:
+    image:
+      tag: dev-latest
+  subscription-service:
+    image:
+      tag: dev-latest
+  payment-service:
+    image:
+      tag: dev-latest
+  analytics-service:
+    image:
+      tag: dev-latest

@@ -99,6 +99,9 @@ All scaffolding and code/config blocks from `new-new.md` are pre-created under t
 - Chaos manifests: `k8s/chaos/*` and `k8s/chaos/kong/*`
 - CI/CD workflow: `.github/workflows/ci-cd.yaml`
 - Seed script: `scripts/seed_db.py`
+- Helm chart source: `helm-charts/charts/*`
+- GitOps runbook: `docs/GITOPS_HELM_E2E.md`
+- CPU triage guide: `docs/CLUSTER_CPU_WARNING_TRIAGE.md`
 
 ## 2) Local Prerequisites
 
@@ -399,13 +402,16 @@ Expected routes in `frontend/src/App.js`:
 
 ## 10) CI/CD + GitOps
 
-Workflow file:
+Workflow files:
 
-- `.github/workflows/ci-cd.yaml`
+- `.github/workflows/ci-cd.yaml` (CI)
+- `.github/workflows/cd-release.yaml` (CD)
 
 Set GitHub secrets:
 
 - `GITHUB_TOKEN` with `packages:write` (auto-provided in GitHub Actions)
+- `GHCR_TOKEN` (recommended for CD publish to GHCR; PAT with `write:packages`)
+- `GHCR_USERNAME` (optional; defaults to workflow actor)
 
 Argo CD install:
 

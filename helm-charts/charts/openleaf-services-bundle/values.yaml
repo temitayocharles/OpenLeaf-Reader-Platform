@@ -1,0 +1,179 @@
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+commonEnvFrom:
+  - configMapRef:
+      name: app-config
+  - secretRef:
+      name: app-secrets
+
+serviceOrder:
+  - book-service
+  - publishing-service
+  - subscription-service
+  - payment-service
+  - analytics-service
+
+services:
+  book-service:
+    enabled: true
+    replicaCount: 2
+    containerName: book-service
+    image:
+      repository: ghcr.io/temitayocharles/openleaf-book-service
+      tag: latest
+      pullPolicy: Always
+    service:
+      type: ClusterIP
+      port: 5002
+      targetPort: 5002
+    containerPort: 5002
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5002
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5002
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    resources:
+      requests:
+        cpu: "150m"
+        memory: "192Mi"
+      limits:
+        cpu: "600m"
+        memory: "384Mi"
+  publishing-service:
+    enabled: true
+    replicaCount: 2
+    containerName: publishing-service
+    image:
+      repository: ghcr.io/temitayocharles/openleaf-publishing-service
+      tag: latest
+      pullPolicy: Always
+    service:
+      type: ClusterIP
+      port: 5003
+      targetPort: 5003
+    containerPort: 5003
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5003
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5003
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    resources:
+      requests:
+        cpu: "150m"
+        memory: "192Mi"
+      limits:
+        cpu: "600m"
+        memory: "384Mi"
+  subscription-service:
+    enabled: true
+    replicaCount: 2
+    containerName: subscription-service
+    image:
+      repository: ghcr.io/temitayocharles/openleaf-subscription-service
+      tag: latest
+      pullPolicy: Always
+    service:
+      type: ClusterIP
+      port: 5004
+      targetPort: 5004
+    containerPort: 5004
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5004
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5004
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    resources:
+      requests:
+        cpu: "150m"
+        memory: "192Mi"
+      limits:
+        cpu: "600m"
+        memory: "384Mi"
+  payment-service:
+    enabled: true
+    replicaCount: 2
+    containerName: payment-service
+    image:
+      repository: ghcr.io/temitayocharles/openleaf-payment-service
+      tag: latest
+      pullPolicy: Always
+    service:
+      type: ClusterIP
+      port: 5005
+      targetPort: 5005
+    containerPort: 5005
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5005
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5005
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "700m"
+        memory: "512Mi"
+  analytics-service:
+    enabled: true
+    replicaCount: 2
+    containerName: analytics-service
+    image:
+      repository: ghcr.io/temitayocharles/openleaf-analytics-service
+      tag: latest
+      pullPolicy: Always
+    service:
+      type: ClusterIP
+      port: 5006
+      targetPort: 5006
+    containerPort: 5006
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5006
+      initialDelaySeconds: 20
+      periodSeconds: 20
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 5006
+      initialDelaySeconds: 15
+      periodSeconds: 10
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "320Mi"
+      limits:
+        cpu: "900m"
+        memory: "768Mi"

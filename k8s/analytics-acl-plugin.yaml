@@ -2,6 +2,8 @@ apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: analytics-acl
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 plugin: acl
 config:
   allow:

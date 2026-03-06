@@ -1,0 +1,28 @@
+ingress:
+  hosts:
+    - host: dev.openleaf.local
+      paths:
+        - path: /users
+          pathType: Prefix
+          serviceName: user-service
+          servicePort: 5001
+        - path: /books
+          pathType: Prefix
+          serviceName: book-service
+          servicePort: 5002
+        - path: /publish
+          pathType: Prefix
+          serviceName: publishing-service
+          servicePort: 5003
+        - path: /subscriptions
+          pathType: Prefix
+          serviceName: subscription-service
+          servicePort: 5004
+        - path: /payments
+          pathType: Prefix
+          serviceName: payment-service
+          servicePort: 5005
+        - path: /analytics
+          pathType: Prefix
+          serviceName: analytics-service
+          servicePort: 5006

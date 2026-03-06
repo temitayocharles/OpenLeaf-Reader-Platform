@@ -2,6 +2,8 @@ apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: oauth2-plugin
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 plugin: oauth2
 config:
   enable_authorization_code: true
@@ -12,6 +14,8 @@ apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: rate-limit-plugin
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 plugin: rate-limiting
 config:
   minute: 100
@@ -21,6 +25,8 @@ apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: acl-plugin
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 plugin: acl
 config:
   allow: ["users", "admins"]  # Groups
@@ -29,6 +35,8 @@ apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: request-validator
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 plugin: request-validator
 config:
   allowed_content_types: ["application/json"]
@@ -37,6 +45,8 @@ apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: bot-detection
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 plugin: bot-detection
 config:
   allow: []  # Block known bots
@@ -46,6 +56,7 @@ kind: Ingress
 metadata:
   name: openleaf-ingress
   annotations:
+    argocd.argoproj.io/sync-wave: "20"
     kubernetes.io/ingress.class: kong
     konghq.com/plugins: oauth2-plugin,rate-limit-plugin,acl-plugin,request-validator,bot-detection
     cert-manager.io/cluster-issuer: "letsencrypt"

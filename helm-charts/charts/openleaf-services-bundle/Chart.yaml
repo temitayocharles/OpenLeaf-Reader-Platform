@@ -1,0 +1,6 @@
+apiVersion: v2
+name: openleaf-services-bundle
+description: Helm chart for OpenLeaf domain services (book/publishing/subscription/payment/analytics)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

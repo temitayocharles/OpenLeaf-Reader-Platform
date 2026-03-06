@@ -2,6 +2,8 @@ apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
   name: kong-proxy-stress
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
 spec:
   mode: one
   selector:

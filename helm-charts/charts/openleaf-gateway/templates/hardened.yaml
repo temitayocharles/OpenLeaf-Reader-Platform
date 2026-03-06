@@ -1,22 +1,17 @@
-# 1. Bot Detection (early block bad bots)
+{{- if .Values.hardened.enabled }}
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: sec-bot-early
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: bot-detection
 config:
   deny: []
   allow: []
 ---
-# 2. IP Restriction (early network allowlist)
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: sec-ip-block
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: ip-restriction
 config:
   allow:
@@ -25,13 +20,10 @@ config:
   - 192.168.0.0/16
   deny: []
 ---
-# 3. Rate limiting by source IP
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: sec-rate-ip
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: rate-limiting
 config:
   minute: 60
@@ -39,13 +31,10 @@ config:
   limit_by: ip
   hide_client_headers: true
 ---
-# 4. JWT authentication
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: sec-jwt
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: jwt
 config:
   uri_param_names: [jwt]
@@ -53,13 +42,10 @@ config:
   claims_to_verify: [exp, iss]
   maximum_expiration_time: 3600
 ---
-# 5. ACL authorization
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: sec-acl
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: acl
 config:
   allow:
@@ -67,13 +53,10 @@ config:
   - admins
   hide_groups_header: true
 ---
-# 6. Request validation
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: sec-validator
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: request-validator
 config:
   version: draft4
@@ -81,13 +64,10 @@ config:
   allowed_content_types:
   - application/json
 ---
-# 7. Request transformation
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: sec-transform
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: request-transformer
 config:
   add:
@@ -95,25 +75,19 @@ config:
     - "X-From-Kong: secured"
     - "X-Request-Source: external"
 ---
-# 8. Correlation ID for traceability
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: trace-correlation
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: correlation-id
 config:
   header_name: X-Trace-ID
   generator: uuid
 ---
-# 9. Proxy cache after security checks
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: opt-cache
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: proxy-cache
 config:
   content_type:
@@ -122,36 +96,35 @@ config:
   cache_ttl: 120
   strategy: memory
 ---
-# 10. Response transform
 apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: resp-transform
-  annotations:
-    argocd.argoproj.io/sync-wave: "20"
 plugin: response-transformer
 config:
   add:
     headers:
     - "X-Protected-By: Kong-Hardened-Chain"
 ---
-# Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ultra-hardened-route
+  name: {{ .Values.hardened.ingress.name }}
   annotations:
-    argocd.argoproj.io/sync-wave: "20"
-    kubernetes.io/ingress.class: kong
-    konghq.com/plugins: sec-bot-early,sec-ip-block,sec-rate-ip,sec-jwt,sec-acl,sec-validator,sec-transform,trace-correlation,opt-cache,resp-transform
+    kubernetes.io/ingress.class: {{ .Values.hardened.ingress.className | quote }}
+    konghq.com/plugins: {{ join "," .Values.hardened.ingress.pluginList | quote }}
 spec:
   rules:
-  - http:
+  - {{- if .Values.hardened.ingress.host }}
+    host: {{ .Values.hardened.ingress.host | quote }}
+    {{- end }}
+    http:
       paths:
-      - path: /ultra-secure
-        pathType: Prefix
+      - path: {{ .Values.hardened.ingress.path }}
+        pathType: {{ .Values.hardened.ingress.pathType }}
         backend:
           service:
-            name: user-service
+            name: {{ .Values.hardened.ingress.serviceName }}
             port:
-              number: 5001
+              number: {{ .Values.hardened.ingress.servicePort }}
+{{- end }}

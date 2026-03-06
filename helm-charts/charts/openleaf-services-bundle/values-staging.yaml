@@ -1,0 +1,16 @@
+services:
+  book-service:
+    image:
+      tag: staging-latest
+  publishing-service:
+    image:
+      tag: staging-latest
+  subscription-service:
+    image:
+      tag: staging-latest
+  payment-service:
+    image:
+      tag: staging-latest
+  analytics-service:
+    image:
+      tag: staging-latest

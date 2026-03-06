@@ -2,6 +2,8 @@ apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
   name: kong-proxy-pod-kill
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
 spec:
   action: pod-kill
   mode: one

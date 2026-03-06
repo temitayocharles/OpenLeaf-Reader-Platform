@@ -2,6 +2,8 @@ apiVersion: chaos-mesh.org/v1alpha1
 kind: HttpChaos
 metadata:
   name: payment-http-abort
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
 spec:
   mode: all
   selector:

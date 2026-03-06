@@ -2,6 +2,8 @@ apiVersion: configuration.konghq.com/v1
 kind: KongPlugin
 metadata:
   name: kong-prometheus-global
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 plugin: prometheus
 config:
   per_consumer: false
