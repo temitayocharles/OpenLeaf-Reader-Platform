@@ -12,9 +12,11 @@ spec:
       labels:
         app: book-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-creds
       containers:
       - name: book-service
-        image: yourdockerhub/book-service:latest
+        image: ghcr.io/temitayocharles/openleaf-book-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5002
@@ -69,9 +71,11 @@ spec:
       labels:
         app: publishing-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-creds
       containers:
       - name: publishing-service
-        image: yourdockerhub/publishing-service:latest
+        image: ghcr.io/temitayocharles/openleaf-publishing-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5003
@@ -126,9 +130,11 @@ spec:
       labels:
         app: subscription-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-creds
       containers:
       - name: subscription-service
-        image: yourdockerhub/subscription-service:latest
+        image: ghcr.io/temitayocharles/openleaf-subscription-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5004
@@ -183,9 +189,11 @@ spec:
       labels:
         app: payment-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-creds
       containers:
       - name: payment-service
-        image: yourdockerhub/payment-service:latest
+        image: ghcr.io/temitayocharles/openleaf-payment-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5005
@@ -240,9 +248,11 @@ spec:
       labels:
         app: analytics-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-creds
       containers:
       - name: analytics-service
-        image: yourdockerhub/analytics-service:latest
+        image: ghcr.io/temitayocharles/openleaf-analytics-service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 5006

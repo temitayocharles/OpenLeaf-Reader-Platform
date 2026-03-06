@@ -40,13 +40,14 @@ Set these variables first:
 
 ```bash
 export PROJECT_ROOT="$(pwd)"
-export KUBE_NS="default"
+export KUBE_NS="openleaf-e2e"
 export KONG_PROXY_URL="http://localhost:8000"
 export ARGOCD_NS="argocd"
 export CHAOS_NS="chaos-testing"
 export TARGET_PLATFORMS="linux/amd64,linux/arm64"
-export DOCKERHUB_USER="yourdockerhub"
-export GITHUB_REPO_URL="https://github.com/yourusername/openleaf-reader-platform.git"
+export GHCR_OWNER="temitayocharles"
+export IMAGE_TAG="latest"
+export GITHUB_REPO_URL="https://github.com/temitayocharles/OpenLeaf-Reader-Platform.git"
 ```
 
 Project root:
@@ -157,36 +158,97 @@ helm repo add chaos-mesh https://charts.chaos-mesh.org
 helm repo update
 ```
 
-### 4.2 MongoDB sharded
+### 4.2 MongoDB (stable minimal path)
 
 ```bash
-helm install mongo bitnami/mongodb-sharded \
-  --set mongodbRootPassword=root \
-  --set shards=1 \
-  --set configsvr.replicas=1 \
-  --set shardsvr.replicas=2 \
-  --set mongos.replicas=1
+kubectl create namespace "$KUBE_NS" --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl -n "$KUBE_NS" apply -f - <<'YAML'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: mongo-mongodb}
+  template:
+    metadata:
+      labels: {app: mongo-mongodb}
+    spec:
+      containers:
+      - name: mongo
+        image: mongo:7
+        ports:
+        - containerPort: 27017
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-mongodb
+spec:
+  selector: {app: mongo-mongodb}
+  ports:
+  - port: 27017
+    targetPort: 27017
+YAML
 ```
 
-### 4.3 RabbitMQ
+### 4.3 RabbitMQ (stable minimal path)
 
 ```bash
-helm install rabbit bitnami/rabbitmq \
-  --set auth.username=guest \
-  --set auth.password=guest
+kubectl -n "$KUBE_NS" apply -f - <<'YAML'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbit-rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: rabbit-rabbitmq}
+  template:
+    metadata:
+      labels: {app: rabbit-rabbitmq}
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3-management
+        ports:
+        - containerPort: 5672
+        - containerPort: 15672
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: guest
+        - name: RABBITMQ_DEFAULT_PASS
+          value: guest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbit-rabbitmq
+spec:
+  selector: {app: rabbit-rabbitmq}
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: 5672
+  - name: http
+    port: 15672
+    targetPort: 15672
+YAML
 ```
 
-### 4.4 Kong (Ingress Controller style)
+### 4.4 Kong (optional ingress path)
 
 ```bash
-helm install kong kong/kong \
+helm upgrade --install kong kong/kong \
   --namespace "$KUBE_NS" \
   --set proxy.type=ClusterIP \
   --set ingressController.enabled=true \
   --set ingressController.installCRDs=true
 ```
 
-Apply base Kong config/routes/plugins:
+Apply base Kong config/routes/plugins only after Kong is ready:
 
 ```bash
 kubectl apply -f k8s/kong-config.yaml
@@ -197,7 +259,7 @@ kubectl apply -f k8s/kong-config.yaml
 Set Mongo URI (adapt your service name/IP if needed):
 
 ```bash
-export MONGO_URI="mongodb://$(kubectl get svc mongo-mongodb-sharded-mongos -o jsonpath='{.spec.clusterIP}'):27017/openleaf_db?replicaSet=rsShard0"
+export MONGO_URI="mongodb://mongo-mongodb:27017/openleaf_db"
 ```
 
 Seed data:
@@ -237,18 +299,18 @@ docker login
 ```
 
 ```bash
-cd services/user-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "$DOCKERHUB_USER/user-service:latest" --push . && cd ../..
-cd services/book-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "$DOCKERHUB_USER/book-service:latest" --push . && cd ../..
-cd services/publishing-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "$DOCKERHUB_USER/publishing-service:latest" --push . && cd ../..
-cd services/subscription-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "$DOCKERHUB_USER/subscription-service:latest" --push . && cd ../..
-cd services/payment-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "$DOCKERHUB_USER/payment-service:latest" --push . && cd ../..
-cd services/analytics-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "$DOCKERHUB_USER/analytics-service:latest" --push . && cd ../..
+cd services/user-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "ghcr.io/$GHCR_OWNER/openleaf-user-service:$IMAGE_TAG" --push . && cd ../..
+cd services/book-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "ghcr.io/$GHCR_OWNER/openleaf-book-service:$IMAGE_TAG" --push . && cd ../..
+cd services/publishing-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "ghcr.io/$GHCR_OWNER/openleaf-publishing-service:$IMAGE_TAG" --push . && cd ../..
+cd services/subscription-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "ghcr.io/$GHCR_OWNER/openleaf-subscription-service:$IMAGE_TAG" --push . && cd ../..
+cd services/payment-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "ghcr.io/$GHCR_OWNER/openleaf-payment-service:$IMAGE_TAG" --push . && cd ../..
+cd services/analytics-service && docker buildx build --platform "$TARGET_PLATFORMS" -t "ghcr.io/$GHCR_OWNER/openleaf-analytics-service:$IMAGE_TAG" --push . && cd ../..
 ```
 
 Frontend image (multi-arch + push):
 
 ```bash
-cd frontend && docker buildx build --platform "$TARGET_PLATFORMS" -t "$DOCKERHUB_USER/frontend:latest" --push . && cd ..
+cd frontend && docker buildx build --platform "$TARGET_PLATFORMS" -t "ghcr.io/$GHCR_OWNER/openleaf-frontend:$IMAGE_TAG" --push . && cd ..
 ```
 
 ## 7) Kubernetes App Deployment
@@ -343,8 +405,7 @@ Workflow file:
 
 Set GitHub secrets:
 
-- `DOCKER_USERNAME`
-- `DOCKER_PASSWORD`
+- `GITHUB_TOKEN` with `packages:write` (auto-provided in GitHub Actions)
 
 Argo CD install:
 
