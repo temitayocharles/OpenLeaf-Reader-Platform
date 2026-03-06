@@ -1,0 +1,19 @@
+sequenceDiagram
+  participant User
+  participant Frontend
+  participant Kong
+  participant Service as Domain Service
+  participant MongoDB
+  participant RabbitMQ
+  participant Analytics
+
+  User->>Frontend: Action (browse/publish/subscribe)
+  Frontend->>Kong: HTTP request
+  Kong->>Service: Routed request (plugins applied)
+  Service->>MongoDB: Read/Write
+  Service->>RabbitMQ: Publish event (optional)
+  RabbitMQ->>Analytics: Consume event
+  Analytics->>MongoDB: Update aggregates
+  Service-->>Kong: Response
+  Kong-->>Frontend: Response
+  Frontend-->>User: UI update

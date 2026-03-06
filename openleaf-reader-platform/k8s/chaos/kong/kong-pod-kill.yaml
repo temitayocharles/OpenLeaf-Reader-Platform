@@ -1,0 +1,12 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kong-proxy-pod-kill
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    labelSelectors:
+      chaos-target: kong-proxy
+  duration: "20s"
+  gracePeriod: 5

@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HttpChaos
+metadata:
+  name: payment-http-abort
+spec:
+  mode: all
+  selector:
+    labelSelectors:
+      app: payment-service
+  target:
+    service:
+      name: payment-service
+      port: 5005
+  port: 5005
+  path: "/.*"
+  abort: true
+  duration: "45s"

@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kong-to-upstream-delay-partition
+spec:
+  action: partition
+  mode: all
+  selector:
+    labelSelectors:
+      chaos-target: kong-proxy
+  direction: to
+  target:
+    selector:
+      labelSelectors:
+        app: user-service
+    mode: all
+  duration: "60s"

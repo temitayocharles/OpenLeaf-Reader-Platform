@@ -1,0 +1,25 @@
+flowchart TB
+  subgraph OBS["Observability"]
+    KP["Kong Prometheus Plugin (/metrics)"]
+    PROM["Prometheus"]
+    LOKI["Loki"]
+    GRAF["Grafana"]
+  end
+
+  subgraph CICD["Delivery"]
+    GH["GitHub Actions"]
+    DH["Docker Hub (Multi-Arch Images)"]
+    ARGO["Argo CD"]
+    K8S["k3s Cluster"]
+  end
+
+  KONG["Kong"] --> KP --> PROM --> GRAF
+  US["user-service"] --> PROM
+  BS["book-service"] --> PROM
+  PS["publishing-service"] --> PROM
+  SS["subscription-service"] --> PROM
+  PAY["payment-service"] --> PROM
+  AN["analytics-service"] --> PROM
+  LOKI --> GRAF
+
+  GH --> DH --> ARGO --> K8S

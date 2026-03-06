@@ -1,0 +1,19 @@
+flowchart TB
+  U["User (Web / Mobile)"] --> FE["React Frontend"]
+  FE --> KONG["Kong Gateway / Ingress"]
+
+  subgraph SVC["Domain Services"]
+    US["user-service (5001)"]
+    BS["book-service (5002)"]
+    PS["publishing-service (5003)"]
+    SS["subscription-service (5004)"]
+    PAY["payment-service (5005)"]
+    AN["analytics-service (5006)"]
+  end
+
+  KONG --> US
+  KONG --> BS
+  KONG --> PS
+  KONG --> SS
+  KONG --> PAY
+  KONG --> AN

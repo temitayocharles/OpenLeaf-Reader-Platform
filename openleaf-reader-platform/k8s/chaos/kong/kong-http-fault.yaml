@@ -1,0 +1,20 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HttpChaos
+metadata:
+  name: kong-http-fault-injection
+spec:
+  mode: all
+  selector:
+    labelSelectors:
+      chaos-target: kong-proxy
+  target:
+    service:
+      name: kong-kong-proxy
+      port: 80
+  port: 80
+  path: "/.*"
+  delay:
+    latency: "2s"
+    correlation: "100"
+    jitter: "500ms"
+  duration: "30s"

@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  labels:
+    grafana_dashboard: "1"
+data:
+  openleaf-overview.json: |
+    {
+      "id": null,
+      "uid": "openleaf-overview",
+      "title": "OpenLeaf Platform Overview",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "tags": ["openleaf", "platform"],
+      "templating": {
+        "list": []
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Gateway Requests/s",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(kong_http_requests_total[5m]))",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "",
+              "values": false
+            }
+          }
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Gateway 5xx Rate",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(kong_http_status{code=~\"5..\"}[5m]))",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }

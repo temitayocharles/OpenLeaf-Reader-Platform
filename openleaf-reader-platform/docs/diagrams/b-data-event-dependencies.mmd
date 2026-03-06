@@ -1,0 +1,31 @@
+flowchart TB
+  subgraph APP["Application Services"]
+    US["user-service"]
+    BS["book-service"]
+    PS["publishing-service"]
+    SS["subscription-service"]
+    PAY["payment-service"]
+    AN["analytics-service"]
+  end
+
+  MDB["MongoDB Sharded Cluster"]
+  RMQ["RabbitMQ"]
+  STRIPE["Stripe Checkout + Webhooks"]
+  KONG["Kong Gateway"]
+
+  US --> MDB
+  BS --> MDB
+  PS --> MDB
+  SS --> MDB
+  PAY --> MDB
+  AN --> MDB
+
+  US --> RMQ
+  PS --> RMQ
+  PAY --> RMQ
+  RMQ --> AN
+
+  SS --> PAY
+  PAY --> STRIPE
+  STRIPE --> KONG
+  KONG --> PAY

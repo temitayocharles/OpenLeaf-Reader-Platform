@@ -1,0 +1,97 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: oauth2-plugin
+plugin: oauth2
+config:
+  enable_authorization_code: true
+  scopes: ["email", "profile"]
+  # Add more for JWT, etc.
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limit-plugin
+plugin: rate-limiting
+config:
+  minute: 100
+  policy: redis  # If Redis added; else local
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: acl-plugin
+plugin: acl
+config:
+  allow: ["users", "admins"]  # Groups
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: request-validator
+plugin: request-validator
+config:
+  allowed_content_types: ["application/json"]
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: bot-detection
+plugin: bot-detection
+config:
+  allow: []  # Block known bots
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openleaf-ingress
+  annotations:
+    kubernetes.io/ingress.class: kong
+    konghq.com/plugins: oauth2-plugin,rate-limit-plugin,acl-plugin,request-validator,bot-detection
+    cert-manager.io/cluster-issuer: "letsencrypt"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /users
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 5001
+      - path: /books
+        pathType: Prefix
+        backend:
+          service:
+            name: book-service
+            port:
+              number: 5002
+      - path: /publish
+        pathType: Prefix
+        backend:
+          service:
+            name: publishing-service
+            port:
+              number: 5003
+      - path: /subscriptions
+        pathType: Prefix
+        backend:
+          service:
+            name: subscription-service
+            port:
+              number: 5004
+      - path: /payments
+        pathType: Prefix
+        backend:
+          service:
+            name: payment-service
+            port:
+              number: 5005
+      - path: /analytics
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-service
+            port:
+              number: 5006

@@ -1,0 +1,5 @@
+flask
+pymongo
+pika
+pyjwt
+prometheus-flask-exporter

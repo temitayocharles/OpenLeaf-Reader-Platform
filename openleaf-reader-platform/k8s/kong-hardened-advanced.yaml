@@ -1,0 +1,136 @@
+# 1. Bot Detection (early block bad bots)
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: sec-bot-early
+plugin: bot-detection
+config:
+  deny: []
+  allow: []
+---
+# 2. IP Restriction (early network allowlist)
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: sec-ip-block
+plugin: ip-restriction
+config:
+  allow:
+  - 127.0.0.1
+  - ::1
+  - 192.168.0.0/16
+  deny: []
+---
+# 3. Rate limiting by source IP
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: sec-rate-ip
+plugin: rate-limiting
+config:
+  minute: 60
+  policy: local
+  limit_by: ip
+  hide_client_headers: true
+---
+# 4. JWT authentication
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: sec-jwt
+plugin: jwt
+config:
+  uri_param_names: [jwt]
+  key_claim_name: kid
+  claims_to_verify: [exp, iss]
+  maximum_expiration_time: 3600
+---
+# 5. ACL authorization
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: sec-acl
+plugin: acl
+config:
+  allow:
+  - users
+  - admins
+  hide_groups_header: true
+---
+# 6. Request validation
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: sec-validator
+plugin: request-validator
+config:
+  version: draft4
+  verbose_response: true
+  allowed_content_types:
+  - application/json
+---
+# 7. Request transformation
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: sec-transform
+plugin: request-transformer
+config:
+  add:
+    headers:
+    - "X-From-Kong: secured"
+    - "X-Request-Source: external"
+---
+# 8. Correlation ID for traceability
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: trace-correlation
+plugin: correlation-id
+config:
+  header_name: X-Trace-ID
+  generator: uuid
+---
+# 9. Proxy cache after security checks
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: opt-cache
+plugin: proxy-cache
+config:
+  content_type:
+  - application/json
+  - text/plain
+  cache_ttl: 120
+  strategy: memory
+---
+# 10. Response transform
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: resp-transform
+plugin: response-transformer
+config:
+  add:
+    headers:
+    - "X-Protected-By: Kong-Hardened-Chain"
+---
+# Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ultra-hardened-route
+  annotations:
+    kubernetes.io/ingress.class: kong
+    konghq.com/plugins: sec-bot-early,sec-ip-block,sec-rate-ip,sec-jwt,sec-acl,sec-validator,sec-transform,trace-correlation,opt-cache,resp-transform
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /ultra-secure
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 5001

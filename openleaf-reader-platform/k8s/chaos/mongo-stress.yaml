@@ -1,0 +1,14 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: mongo-cpu-stress
+spec:
+  mode: one
+  selector:
+    labelSelectors:
+      app.kubernetes.io/name: mongodb
+  stressors:
+    cpu:
+      workers: 4
+      load: 100
+  duration: "1m"

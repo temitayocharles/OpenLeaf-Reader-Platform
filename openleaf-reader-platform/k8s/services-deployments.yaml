@@ -1,0 +1,284 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: book-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: book-service
+  template:
+    metadata:
+      labels:
+        app: book-service
+    spec:
+      containers:
+      - name: book-service
+        image: yourdockerhub/book-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5002
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "192Mi"
+          limits:
+            cpu: "600m"
+            memory: "384Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-service
+spec:
+  type: ClusterIP
+  selector:
+    app: book-service
+  ports:
+  - port: 5002
+    targetPort: 5002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: publishing-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: publishing-service
+  template:
+    metadata:
+      labels:
+        app: publishing-service
+    spec:
+      containers:
+      - name: publishing-service
+        image: yourdockerhub/publishing-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5003
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5003
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5003
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "192Mi"
+          limits:
+            cpu: "600m"
+            memory: "384Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: publishing-service
+spec:
+  type: ClusterIP
+  selector:
+    app: publishing-service
+  ports:
+  - port: 5003
+    targetPort: 5003
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subscription-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: subscription-service
+  template:
+    metadata:
+      labels:
+        app: subscription-service
+    spec:
+      containers:
+      - name: subscription-service
+        image: yourdockerhub/subscription-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5004
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5004
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5004
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "192Mi"
+          limits:
+            cpu: "600m"
+            memory: "384Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: subscription-service
+spec:
+  type: ClusterIP
+  selector:
+    app: subscription-service
+  ports:
+  - port: 5004
+    targetPort: 5004
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: yourdockerhub/payment-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5005
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5005
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5005
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "700m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+spec:
+  type: ClusterIP
+  selector:
+    app: payment-service
+  ports:
+  - port: 5005
+    targetPort: 5005
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+    spec:
+      containers:
+      - name: analytics-service
+        image: yourdockerhub/analytics-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5006
+        envFrom:
+        - configMapRef:
+            name: app-config
+        - secretRef:
+            name: app-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5006
+          initialDelaySeconds: 20
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5006
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "320Mi"
+          limits:
+            cpu: "900m"
+            memory: "768Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+spec:
+  type: ClusterIP
+  selector:
+    app: analytics-service
+  ports:
+  - port: 5006
+    targetPort: 5006

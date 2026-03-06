@@ -1,0 +1,6 @@
+flask
+pymongo
+pika
+stripe
+python-dotenv
+pyjwt
