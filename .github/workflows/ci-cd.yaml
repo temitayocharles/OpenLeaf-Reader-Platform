@@ -23,9 +23,10 @@ jobs:
       working_directory: "."
       project_key: openleaf-reader-platform
       project_name: OpenLeaf Reader Platform
-      host_url: ${{ secrets.SONAR_HOST_URL }}
-      token: ${{ secrets.SONAR_TOKEN }}
+      host_url: ${{ vars.SONAR_HOST_URL }}
       extra_args: -Dsonar.sources=frontend,services
+    secrets:
+      sonar_token: ${{ secrets.SONAR_TOKEN }}
 
   snyk:
     needs: gitleaks
@@ -36,7 +37,8 @@ jobs:
       working_directory: "."
       command: test
       args: --severity-threshold=high
-      token: ${{ secrets.SNYK_TOKEN }}
+    secrets:
+      snyk_token: ${{ secrets.SNYK_TOKEN }}
 
   python-tests:
     needs: gitleaks
