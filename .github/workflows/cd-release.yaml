@@ -41,6 +41,9 @@ permissions:
   contents: read
   packages: write
 
+env:
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
 jobs:
   resolve-release-vars:
     runs-on: ubuntu-latest
@@ -84,14 +87,212 @@ jobs:
           echo "gitops_repo=${GITOPS_REPO}" >> "${GITHUB_OUTPUT}"
           echo "gitops_base_branch=${GITOPS_BASE_BRANCH}" >> "${GITHUB_OUTPUT}"
 
-  openleaf-cd-release:
+  helm-validate:
     needs: resolve-release-vars
-    uses: temitayocharles/shared-workflows/.github/workflows/openleaf-cd-release.yml@main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Lint Helm charts
+        run: |
+          helm lint helm-charts/charts/openleaf-config
+          helm lint helm-charts/charts/openleaf-user-service
+          helm lint helm-charts/charts/openleaf-services-bundle
+          helm lint helm-charts/charts/openleaf-gateway
+
+      - name: Render Helm charts
+        shell: bash
+        run: |
+          ENV_FILE="values-${{ needs.resolve-release-vars.outputs.deploy_env }}.yaml"
+          helm template openleaf-config helm-charts/charts/openleaf-config -f "helm-charts/charts/openleaf-config/${ENV_FILE}" > /tmp/openleaf-config.render.yaml
+          helm template openleaf-user helm-charts/charts/openleaf-user-service -f "helm-charts/charts/openleaf-user-service/${ENV_FILE}" > /tmp/openleaf-user.render.yaml
+          helm template openleaf-services helm-charts/charts/openleaf-services-bundle -f "helm-charts/charts/openleaf-services-bundle/${ENV_FILE}" > /tmp/openleaf-services.render.yaml
+          helm template openleaf-gateway helm-charts/charts/openleaf-gateway -f "helm-charts/charts/openleaf-gateway/${ENV_FILE}" > /tmp/openleaf-gateway.render.yaml
+
+      - name: Upload Helm render artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-render-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
+          path: |
+            /tmp/openleaf-config.render.yaml
+            /tmp/openleaf-user.render.yaml
+            /tmp/openleaf-services.render.yaml
+            /tmp/openleaf-gateway.render.yaml
+
+  build-and-push:
+    needs:
+      - resolve-release-vars
+      - helm-validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - context: services/user-service
+            image: openleaf-user-service
+          - context: services/book-service
+            image: openleaf-book-service
+          - context: services/publishing-service
+            image: openleaf-publishing-service
+          - context: services/subscription-service
+            image: openleaf-subscription-service
+          - context: services/payment-service
+            image: openleaf-payment-service
+          - context: services/analytics-service
+            image: openleaf-analytics-service
+          - context: frontend
+            image: openleaf-frontend
+    uses: temitayocharles/shared-workflows/.github/workflows/docker-build-push.yml@main
     with:
-      environment: ${{ needs.resolve-release-vars.outputs.deploy_env }}
-      image_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
-      promote_gitops: ${{ needs.resolve-release-vars.outputs.promote_gitops == 'true' }}
-      gitops_repo: ${{ needs.resolve-release-vars.outputs.gitops_repo }}
-      gitops_base_branch: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
-      image_owner: ${{ github.repository_owner }}
-    secrets: inherit
+      registry: ghcr.io
+      image_name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+      context: ${{ matrix.context }}
+      dockerfile: Dockerfile
+      tags: ${{ needs.resolve-release-vars.outputs.release_tag }},${{ needs.resolve-release-vars.outputs.deploy_env }}-latest
+    secrets:
+      registry_username: ${{ secrets.GHCR_USERNAME != '' && secrets.GHCR_USERNAME || github.actor }}
+      registry_password: ${{ secrets.GHCR_TOKEN != '' && secrets.GHCR_TOKEN || github.token }}
+
+  release-evidence:
+    needs:
+      - resolve-release-vars
+      - helm-validate
+      - build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Helm renders
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-render-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
+          path: /tmp/helm-render
+
+      - name: Build release evidence
+        shell: bash
+        run: |
+          sha256sum /tmp/helm-render/*.yaml > /tmp/render-checksums.txt
+          cat > /tmp/release-evidence.md <<EOF
+          # OpenLeaf CD Evidence
+
+          - commit: ${GITHUB_SHA}
+          - deploy_env: ${{ needs.resolve-release-vars.outputs.deploy_env }}
+          - image_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
+          - image_prefix: ${{ env.IMAGE_PREFIX }}
+
+          ## Published Images
+          - ${{ env.IMAGE_PREFIX }}/openleaf-user-service:${{ needs.resolve-release-vars.outputs.release_tag }}
+          - ${{ env.IMAGE_PREFIX }}/openleaf-book-service:${{ needs.resolve-release-vars.outputs.release_tag }}
+          - ${{ env.IMAGE_PREFIX }}/openleaf-publishing-service:${{ needs.resolve-release-vars.outputs.release_tag }}
+          - ${{ env.IMAGE_PREFIX }}/openleaf-subscription-service:${{ needs.resolve-release-vars.outputs.release_tag }}
+          - ${{ env.IMAGE_PREFIX }}/openleaf-payment-service:${{ needs.resolve-release-vars.outputs.release_tag }}
+          - ${{ env.IMAGE_PREFIX }}/openleaf-analytics-service:${{ needs.resolve-release-vars.outputs.release_tag }}
+          - ${{ env.IMAGE_PREFIX }}/openleaf-frontend:${{ needs.resolve-release-vars.outputs.release_tag }}
+
+          ## Helm Render Checksums
+          \`\`\`
+          $(cat /tmp/render-checksums.txt)
+          \`\`\`
+          EOF
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
+          path: |
+            /tmp/release-evidence.md
+            /tmp/render-checksums.txt
+
+  promote-gitops:
+    needs:
+      - resolve-release-vars
+      - build-and-push
+      - release-evidence
+    if: needs.resolve-release-vars.outputs.promote_gitops == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.resolve-release-vars.outputs.gitops_repo }}
+          ref: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          path: gitops
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Update OpenLeaf image tags in values files
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          root = Path("gitops")
+          env_name = "${{ needs.resolve-release-vars.outputs.deploy_env }}"
+          tag = "${{ needs.resolve-release-vars.outputs.release_tag }}"
+          target_name = f"values-{env_name}.yaml"
+          targets = list(root.rglob(target_name))
+
+          def update_image_block(block):
+            if not isinstance(block, dict):
+              return 0
+            repo = block.get("repository")
+            if isinstance(repo, str) and "/openleaf-" in repo and block.get("tag") != tag:
+              block["tag"] = tag
+              return 1
+            return 0
+
+          changed = []
+          for path in targets:
+            try:
+              data = yaml.safe_load(path.read_text()) or {}
+            except Exception:
+              continue
+            updates = 0
+            if isinstance(data, dict):
+              updates += update_image_block(data.get("image"))
+              services = data.get("services")
+              if isinstance(services, dict):
+                for svc in services.values():
+                  if isinstance(svc, dict):
+                    updates += update_image_block(svc.get("image"))
+            if updates > 0:
+              path.write_text(yaml.safe_dump(data, sort_keys=False))
+              changed.append((str(path), updates))
+
+          if changed:
+            print("Updated files:")
+            for path, updates in changed:
+              print(f"- {path} ({updates} image blocks)")
+          else:
+            print("No OpenLeaf image tags were updated in GitOps values files.")
+          PY
+
+      - name: Create pull request in GitOps repo
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          path: gitops
+          branch: openleaf/cd-${{ needs.resolve-release-vars.outputs.deploy_env }}-${{ needs.resolve-release-vars.outputs.release_tag }}
+          base: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
+          commit-message: "chore(gitops): promote OpenLeaf images to ${{ needs.resolve-release-vars.outputs.release_tag }}"
+          title: "chore(gitops): promote OpenLeaf images to ${{ needs.resolve-release-vars.outputs.release_tag }} (${{ needs.resolve-release-vars.outputs.deploy_env }})"
+          body: |
+            Automated promotion from OpenLeaf CD pipeline.
+
+            - Environment: `${{ needs.resolve-release-vars.outputs.deploy_env }}`
+            - Image tag: `${{ needs.resolve-release-vars.outputs.release_tag }}`
+            - Source commit: `${{ github.sha }}`

@@ -9,9 +9,63 @@ permissions:
   packages: write
 
 jobs:
-  openleaf-ci:
-    uses: temitayocharles/shared-workflows/.github/workflows/openleaf-ci.yml@main
+  python-tests:
+    uses: temitayocharles/shared-workflows/.github/workflows/tests-python.yml@main
     with:
-      image_owner: ${{ github.repository_owner }}
-      run_trivy: true
-    secrets: inherit
+      python-version: "3.11"
+      requirements-glob: "services/*-service/requirements.txt"
+      test-cmd: "pytest services/tests/"
+
+  frontend-tests:
+    uses: temitayocharles/shared-workflows/.github/workflows/tests-node.yml@main
+    with:
+      node-version: "20"
+      working-directory: "frontend"
+      test-cmd: "npm test -- --watchAll=false --passWithNoTests"
+
+  build-and-push:
+    needs:
+      - python-tests
+      - frontend-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - context: services/user-service
+            image: openleaf-user-service
+          - context: services/book-service
+            image: openleaf-book-service
+          - context: services/publishing-service
+            image: openleaf-publishing-service
+          - context: services/subscription-service
+            image: openleaf-subscription-service
+          - context: services/payment-service
+            image: openleaf-payment-service
+          - context: services/analytics-service
+            image: openleaf-analytics-service
+          - context: frontend
+            image: openleaf-frontend
+    uses: temitayocharles/shared-workflows/.github/workflows/docker-build-push.yml@main
+    with:
+      registry: ghcr.io
+      image_name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+      context: ${{ matrix.context }}
+      dockerfile: Dockerfile
+      tags: latest
+    secrets:
+      registry_username: ${{ secrets.GHCR_USERNAME != '' && secrets.GHCR_USERNAME || github.actor }}
+      registry_password: ${{ secrets.GHCR_TOKEN != '' && secrets.GHCR_TOKEN || github.token }}
+
+  scan-images:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
+
+      - name: Scan images
+        shell: bash
+        run: |
+          for img in openleaf-user-service openleaf-book-service openleaf-publishing-service openleaf-subscription-service openleaf-payment-service openleaf-analytics-service openleaf-frontend; do
+            trivy image --exit-code 1 --no-progress ghcr.io/${{ github.repository_owner }}/${img}:latest
+          done
