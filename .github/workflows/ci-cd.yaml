@@ -34,24 +34,31 @@ jobs:
         include:
           - context: services/user-service
             image: openleaf-user-service
+            dockerfile: services/user-service/Dockerfile
           - context: services/book-service
             image: openleaf-book-service
+            dockerfile: services/book-service/Dockerfile
           - context: services/publishing-service
             image: openleaf-publishing-service
+            dockerfile: services/publishing-service/Dockerfile
           - context: services/subscription-service
             image: openleaf-subscription-service
+            dockerfile: services/subscription-service/Dockerfile
           - context: services/payment-service
             image: openleaf-payment-service
+            dockerfile: services/payment-service/Dockerfile
           - context: services/analytics-service
             image: openleaf-analytics-service
+            dockerfile: services/analytics-service/Dockerfile
           - context: frontend
             image: openleaf-frontend
+            dockerfile: frontend/Dockerfile
     uses: temitayocharles/shared-workflows/.github/workflows/docker-build-push.yml@main
     with:
       registry: ghcr.io
       image_name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
       context: ${{ matrix.context }}
-      dockerfile: Dockerfile
+      dockerfile: ${{ matrix.dockerfile }}
       tags: latest
     secrets:
       registry_username: ${{ secrets.GHCR_USERNAME != '' && secrets.GHCR_USERNAME || github.actor }}
