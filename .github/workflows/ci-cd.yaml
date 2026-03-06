@@ -9,7 +9,13 @@ permissions:
   packages: write
 
 jobs:
+  gitleaks:
+    uses: temitayocharles/shared-workflows/.github/workflows/security-gitleaks.yml@main
+    with:
+      fail_on_findings: true
+
   python-tests:
+    needs: gitleaks
     uses: temitayocharles/shared-workflows/.github/workflows/tests-python.yml@main
     with:
       python-version: "3.11"
@@ -17,6 +23,7 @@ jobs:
       test-cmd: "pytest services/tests/"
 
   frontend-tests:
+    needs: gitleaks
     uses: temitayocharles/shared-workflows/.github/workflows/tests-node.yml@main
     with:
       node-version: "20"
@@ -66,14 +73,7 @@ jobs:
 
   scan-images:
     needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup Trivy
-        uses: aquasecurity/setup-trivy@v0.2.2
-
-      - name: Scan images
-        shell: bash
-        run: |
-          for img in openleaf-user-service openleaf-book-service openleaf-publishing-service openleaf-subscription-service openleaf-payment-service openleaf-analytics-service openleaf-frontend; do
-            trivy image --exit-code 1 --no-progress ghcr.io/${{ github.repository_owner }}/${img}:latest
-          done
+    uses: temitayocharles/shared-workflows/.github/workflows/security-trivy.yml@main
+    with:
+      scan_type: image
+      targets: ghcr.io/${{ github.repository_owner }}/openleaf-user-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-book-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-publishing-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-subscription-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-payment-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-analytics-service:latest,ghcr.io/${{ github.repository_owner }}/openleaf-frontend:latest
