@@ -1,0 +1,20 @@
+name: Reusable Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  resolve-release-vars:
+    uses: temitayocharles/shared-workflows/.github/workflows/release-resolve-vars.yml@main
+    with:
+      is_dispatch: true
+      ref_name: main
+      environment: staging
+      image_tag: smoke-tag
+      promote_gitops: false
+      gitops_repo: temitayocharles/platform-gitops
+      gitops_base_branch: main
