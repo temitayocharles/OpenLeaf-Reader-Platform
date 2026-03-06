@@ -18,3 +18,14 @@ jobs:
       promote_gitops: false
       gitops_repo: temitayocharles/platform-gitops
       gitops_base_branch: main
+
+  promote-gitops:
+    needs: resolve-release-vars
+    if: needs.resolve-release-vars.outputs.promote_gitops == 'true'
+    uses: temitayocharles/shared-workflows/.github/workflows/gitops-promote-openleaf.yml@main
+    with:
+      deploy_env: ${{ needs.resolve-release-vars.outputs.deploy_env }}
+      release_tag: ${{ needs.resolve-release-vars.outputs.release_tag }}
+      gitops_repo: ${{ needs.resolve-release-vars.outputs.gitops_repo }}
+      gitops_base_branch: ${{ needs.resolve-release-vars.outputs.gitops_base_branch }}
+    secrets: inherit
