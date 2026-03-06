@@ -16,9 +16,10 @@ jobs:
 
   sonarqube:
     needs: gitleaks
+    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
     uses: temitayocharles/shared-workflows/.github/workflows/security-sonarqube.yml@main
     with:
-      enabled: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+      enabled: true
       working_directory: "."
       project_key: openleaf-reader-platform
       project_name: OpenLeaf Reader Platform
@@ -28,9 +29,10 @@ jobs:
 
   snyk:
     needs: gitleaks
+    if: ${{ secrets.SNYK_TOKEN != '' }}
     uses: temitayocharles/shared-workflows/.github/workflows/security-snyk.yml@main
     with:
-      enabled: ${{ secrets.SNYK_TOKEN != '' }}
+      enabled: true
       working_directory: "."
       command: test
       args: --severity-threshold=high
